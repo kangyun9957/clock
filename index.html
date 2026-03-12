@@ -1,0 +1,1517 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<title>시계</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+:root {
+  --orange: #FF9F0A;
+  --green: #30D158;
+  --red: #FF453A;
+  --blue: #0A84FF;
+  --gray: #8E8E93;
+  --gray2: #636366;
+  --gray3: #48484A;
+  --gray4: #3A3A3C;
+  --gray5: #2C2C2E;
+  --gray6: #1C1C1E;
+  --separator: #38383A;
+  --bg: #000000;
+  --text: #FFFFFF;
+  --text-secondary: rgba(235,235,245,0.6);
+  --text-tertiary: rgba(235,235,245,0.3);
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body {
+  height: 100%;
+  height: -webkit-fill-available;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+  overflow: hidden;
+  touch-action: manipulation;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Tab Bar (iOS exact: 49pt + safe area) ===== */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(49px + var(--safe-bottom));
+  padding-bottom: var(--safe-bottom);
+  background: rgba(30, 30, 30, 0.88);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  padding-top: 5px;
+  border-top: 0.33px solid var(--separator);
+  z-index: 100;
+}
+
+.tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  background: none;
+  border: none;
+  color: var(--gray);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+  padding: 2px 0;
+  cursor: pointer;
+  min-width: 50px;
+}
+
+.tab-item.active { color: var(--orange); }
+
+.tab-icon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-item svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+}
+
+/* ===== Content Area ===== */
+.content {
+  height: calc(100% - 49px);
+  height: calc(100dvh - 49px);
+  position: relative;
+}
+
+/* ===== Pages ===== */
+.page {
+  display: none;
+  position: absolute;
+  inset: 0;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.page.active {
+  display: flex;
+}
+
+/* ===== Navigation Header (iOS Large Title) ===== */
+.nav-header {
+  padding: 0 16px;
+  padding-top: max(var(--safe-top), 8px);
+}
+
+.nav-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 44px;
+}
+
+.nav-btn {
+  font-size: 17px;
+  color: var(--orange);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-weight: 400;
+  padding: 0;
+}
+
+.nav-btn-add {
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+  padding-bottom: 2px;
+}
+
+.large-title {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 0.37px;
+  padding: 1px 0 8px;
+}
+
+/* ===== 세계시계 ===== */
+.world-clock-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 0.33px solid var(--separator);
+  margin-left: 16px;
+}
+
+.world-clock-item:last-child { border-bottom: none; }
+
+.wc-diff {
+  font-size: 17px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.wc-city {
+  font-size: 26px;
+  font-weight: 400;
+  margin-top: -1px;
+}
+
+.wc-time {
+  font-size: 54px;
+  font-weight: 100;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.wc-ampm {
+  font-size: 26px;
+  font-weight: 300;
+  margin-left: 2px;
+}
+
+/* ===== 알람 ===== */
+.sleep-section {
+  margin: 12px 16px 0;
+  background: var(--gray6);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.sleep-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.sleep-icon {
+  width: 26px;
+  height: 26px;
+  background: var(--orange);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.sleep-title {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.sleep-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.38;
+}
+
+.alarm-section-title {
+  font-size: 22px;
+  font-weight: 700;
+  padding: 28px 16px 6px;
+}
+
+.alarm-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px 8px 0;
+  border-bottom: 0.33px solid var(--separator);
+  margin-left: 16px;
+}
+
+.alarm-time-row {
+  display: flex;
+  align-items: baseline;
+}
+
+.alarm-ampm {
+  font-size: 28px;
+  font-weight: 200;
+}
+
+.alarm-time-num {
+  font-size: 60px;
+  font-weight: 100;
+  letter-spacing: -2px;
+  line-height: 1;
+}
+
+.alarm-label {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-top: -2px;
+}
+
+.alarm-off .alarm-ampm,
+.alarm-off .alarm-time-num,
+.alarm-off .alarm-label {
+  color: var(--text-tertiary);
+}
+
+/* iOS Toggle */
+.ios-toggle {
+  position: relative;
+  width: 51px;
+  height: 31px;
+  background: var(--gray3);
+  border-radius: 15.5px;
+  cursor: pointer;
+  transition: background 0.25s ease;
+  flex-shrink: 0;
+}
+
+.ios-toggle.on { background: var(--green); }
+
+.ios-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 27px;
+  height: 27px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.25s ease;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15), 0 1px 1px rgba(0,0,0,0.16), 0 3px 1px rgba(0,0,0,0.1);
+}
+
+.ios-toggle.on::after { transform: translateX(20px); }
+
+/* ===== 스톱워치 ===== */
+.stopwatch-page {
+  display: none;
+  position: absolute;
+  inset: 0;
+  flex-direction: column;
+}
+
+.stopwatch-page.active { display: flex; }
+
+.sw-display-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: max(var(--safe-top), 20px);
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+/* Analog clock */
+.sw-analog {
+  position: relative;
+  width: min(85vw, 340px);
+  height: min(85vw, 340px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.sw-analog canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Digital-only large display */
+.sw-digital-large {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: min(85vw, 340px);
+  height: min(85vw, 340px);
+  font-size: min(26vw, 100px);
+  font-weight: 100;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -3px;
+  line-height: 1;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.sw-digital-large .sw-cs-lg {
+  font-size: 0.55em;
+}
+
+/* Mode transitions */
+.sw-display-area.mode-digital .sw-analog {
+  display: none;
+}
+
+.sw-display-area.mode-digital .sw-digital-large {
+  display: flex;
+}
+
+/* Page dots indicator */
+.sw-mode-dots {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0 0;
+}
+
+.sw-mode-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gray3);
+  transition: background 0.25s;
+}
+
+.sw-mode-dot.active {
+  background: var(--text);
+}
+
+/* Digital time below analog - iOS uses SF Pro Thin ~90pt */
+.sw-time {
+  font-size: min(22vw, 86px);
+  font-weight: 100;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -3px;
+  text-align: center;
+  padding: 8px 0 0;
+  line-height: 1;
+}
+
+.sw-time .sw-cs {
+  font-size: 0.62em;
+}
+
+/* Hide small digital time in digital mode */
+.sw-display-area.mode-digital ~ .sw-time {
+  display: none;
+}
+
+/* Buttons row */
+.sw-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 16px;
+  width: 100%;
+}
+
+/* iOS double-ring button */
+.sw-btn-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  cursor: pointer;
+  position: relative;
+}
+
+.sw-btn-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+}
+
+.sw-btn-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.1s;
+}
+
+.sw-btn-inner:active { opacity: 0.7; }
+
+/* Button color variants */
+.btn-gray .sw-btn-inner { background: var(--gray4); color: var(--text); }
+.btn-gray::before { border-color: var(--gray4); }
+
+.btn-gray-dim .sw-btn-inner { background: var(--gray5); color: var(--gray2); }
+.btn-gray-dim::before { border-color: var(--gray5); }
+
+.btn-green .sw-btn-inner { background: rgba(48,209,88,0.3); color: var(--green); }
+.btn-green::before { border-color: rgba(48,209,88,0.4); }
+
+.btn-red .sw-btn-inner { background: rgba(255,69,58,0.3); color: var(--red); }
+.btn-red::before { border-color: rgba(255,69,58,0.4); }
+
+/* Lap list */
+.sw-laps {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border-top: 0.33px solid var(--separator);
+}
+
+.lap-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 44px;
+  padding: 0 16px;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 0.33px solid var(--separator);
+}
+
+.lap-row .lap-name { font-weight: 400; }
+.lap-row .lap-val { font-weight: 400; font-variant-numeric: tabular-nums; }
+
+.lap-row.fastest .lap-name,
+.lap-row.fastest .lap-val { color: var(--green); }
+
+.lap-row.slowest .lap-name,
+.lap-row.slowest .lap-val { color: var(--red); }
+
+/* Hidden cheat touch zone */
+.cheat-zone {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 70px;
+  height: 70px;
+  z-index: 50;
+}
+
+.cheat-dot {
+  position: fixed;
+  top: calc(var(--safe-top, 0px) + 12px);
+  right: 12px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--orange);
+  opacity: 0;
+  z-index: 300;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.cheat-dot.on { opacity: 0.8; }
+
+/* ===== 타이머 ===== */
+.timer-page {
+  display: none;
+  position: absolute;
+  inset: 0;
+  flex-direction: column;
+}
+
+.timer-page.active { display: flex; }
+
+.timer-picker-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  position: relative;
+}
+
+.timer-picker-area.hidden { display: none; }
+
+.picker-highlight-bar {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  height: 36px;
+  background: var(--gray4);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.picker-group {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  z-index: 1;
+}
+
+.picker-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 180px;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  width: 56px;
+  scrollbar-width: none;
+}
+
+.picker-col::-webkit-scrollbar { display: none; }
+
+.picker-val {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 23px;
+  font-weight: 300;
+  scroll-snap-align: center;
+  flex-shrink: 0;
+  opacity: 0.25;
+  transition: opacity 0.15s;
+}
+
+.picker-val.sel { opacity: 1; }
+
+.picker-unit {
+  font-size: 17px;
+  font-weight: 600;
+  padding: 0 6px;
+  align-self: center;
+}
+
+.timer-ring-area {
+  flex: 1;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.timer-ring-area.visible { display: flex; }
+
+.timer-ring {
+  position: relative;
+  width: min(75vw, 300px);
+  height: min(75vw, 300px);
+}
+
+.timer-ring canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.timer-time {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: min(18vw, 68px);
+  font-weight: 100;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+}
+
+.timer-bottom {
+  padding: 0 16px 16px;
+}
+
+.timer-sound-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--gray6);
+  border-radius: 10px;
+  padding: 11px 16px;
+  margin-bottom: 16px;
+  font-size: 17px;
+}
+
+.timer-sound-val {
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timer-sound-val::after {
+  content: '>';
+  font-size: 14px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+
+.timer-controls {
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ===== Settings Modal ===== */
+.modal-bg {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 200;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modal-bg.show { display: flex; }
+
+.modal-card {
+  background: var(--gray6);
+  border-radius: 14px 14px 0 0;
+  width: 100%;
+  max-width: 420px;
+  padding: 24px 20px calc(24px + var(--safe-bottom));
+  animation: sheetUp 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.modal-title {
+  font-size: 17px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.modal-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 13px 0;
+  border-bottom: 0.33px solid var(--separator);
+  font-size: 17px;
+}
+
+.modal-field input {
+  background: var(--gray4);
+  border: none;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 17px;
+  padding: 8px 12px;
+  width: 100px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+
+.modal-field input:focus {
+  outline: 1px solid var(--orange);
+}
+
+.modal-save {
+  width: 100%;
+  height: 50px;
+  border-radius: 12px;
+  border: none;
+  background: var(--orange);
+  color: #000;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 24px;
+}
+
+.modal-save:active { opacity: 0.8; }
+</style>
+</head>
+<body>
+
+<div class="cheat-dot" id="cheatDot"></div>
+
+<div class="content">
+
+  <!-- ===== 세계시계 ===== -->
+  <div class="page" id="pageWorld">
+    <div class="nav-header">
+      <div class="nav-top-row">
+        <button class="nav-btn">편집</button>
+        <button class="nav-btn nav-btn-add">+</button>
+      </div>
+      <div class="large-title">세계 시계</div>
+    </div>
+    <div id="worldClockList"></div>
+  </div>
+
+  <!-- ===== 알람 ===== -->
+  <div class="page" id="pageAlarm">
+    <div class="nav-header">
+      <div class="nav-top-row">
+        <button class="nav-btn">편집</button>
+        <button class="nav-btn nav-btn-add">+</button>
+      </div>
+      <div class="large-title">알람</div>
+    </div>
+    <div class="sleep-section">
+      <div class="sleep-header">
+        <div class="sleep-icon">🛏</div>
+        <span class="sleep-title">수면 | 기상</span>
+      </div>
+      <div class="sleep-desc">수면 및 기상 시간 일정은<br>건강 앱에서 변경하십시오.</div>
+    </div>
+    <div class="alarm-section-title">기타</div>
+    <div id="alarmList"></div>
+  </div>
+
+  <!-- ===== 스톱워치 ===== -->
+  <div class="stopwatch-page" id="pageStopwatch">
+    <div class="cheat-zone" id="cheatZone"></div>
+
+    <div class="sw-display-area" id="swDisplayArea">
+      <div class="sw-analog" id="swAnalog">
+        <canvas id="swCanvas" width="680" height="680"></canvas>
+      </div>
+      <div class="sw-digital-large" id="swDigitalLarge">00:00<span class="sw-cs-lg">.00</span></div>
+      <div class="sw-mode-dots">
+        <div class="sw-mode-dot" id="dotDigital"></div>
+        <div class="sw-mode-dot active" id="dotAnalog"></div>
+      </div>
+    </div>
+
+    <div class="sw-time" id="swTime">00:00<span class="sw-cs">.00</span></div>
+
+    <div class="sw-controls">
+      <div class="sw-btn-wrap btn-gray-dim" id="lapWrap">
+        <div class="sw-btn-inner" id="lapBtn">랩</div>
+      </div>
+      <div class="sw-btn-wrap btn-green" id="startWrap">
+        <div class="sw-btn-inner" id="startBtn">시작</div>
+      </div>
+    </div>
+
+    <div class="sw-laps" id="swLaps"></div>
+  </div>
+
+  <!-- ===== 타이머 ===== -->
+  <div class="timer-page" id="pageTimer">
+    <div class="nav-header" style="padding-bottom:0;">
+      <div class="large-title" style="padding-top:max(var(--safe-top),12px);">타이머</div>
+    </div>
+
+    <div class="timer-picker-area" id="timerPickerArea">
+      <div class="picker-highlight-bar"></div>
+      <div class="picker-group">
+        <div class="picker-col" id="pickH"></div>
+        <div class="picker-unit">시간</div>
+        <div class="picker-col" id="pickM"></div>
+        <div class="picker-unit">분</div>
+        <div class="picker-col" id="pickS"></div>
+        <div class="picker-unit">초</div>
+      </div>
+    </div>
+
+    <div class="timer-ring-area" id="timerRingArea">
+      <div class="timer-ring">
+        <canvas id="timerCanvas" width="600" height="600"></canvas>
+        <div class="timer-time" id="timerTime">0:00</div>
+      </div>
+    </div>
+
+    <div class="timer-bottom">
+      <div class="timer-sound-row">
+        <span>타이머 종료 시</span>
+        <span class="timer-sound-val">전파 탐지기</span>
+      </div>
+      <div class="timer-controls">
+        <div class="sw-btn-wrap btn-gray" id="timerCancelWrap">
+          <div class="sw-btn-inner" id="timerCancelBtn">취소</div>
+        </div>
+        <div class="sw-btn-wrap btn-green" id="timerStartWrap">
+          <div class="sw-btn-inner" id="timerStartBtn">시작</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-bg" id="settingsModal">
+  <div class="modal-card">
+    <div class="modal-title">목표 시간 설정</div>
+    <div class="modal-field">
+      <label>분</label>
+      <input type="number" id="tgtMin" value="0" min="0" max="59">
+    </div>
+    <div class="modal-field">
+      <label>초</label>
+      <input type="number" id="tgtSec" value="10" min="0" max="59">
+    </div>
+    <div class="modal-field">
+      <label>1/100초</label>
+      <input type="number" id="tgtCs" value="0" min="0" max="99">
+    </div>
+    <button class="modal-save" id="saveBtn">저장</button>
+  </div>
+</div>
+
+<!-- ===== Tab Bar ===== -->
+<div class="tab-bar">
+  <button class="tab-item" data-tab="world">
+    <div class="tab-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+    </div>
+    <span>세계 시계</span>
+  </button>
+  <button class="tab-item" data-tab="alarm">
+    <div class="tab-icon">
+      <svg viewBox="0 0 24 24"><path d="M22 5.72l-4.6-3.86-1.29 1.53 4.6 3.86L22 5.72zM7.88 3.39L6.6 1.86 2 5.71l1.29 1.53 4.59-3.85zM12 4c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7zm1-11h-2v4l3.5 2.1.5-.86-3-1.74V9z"/></svg>
+    </div>
+    <span>알람</span>
+  </button>
+  <button class="tab-item active" data-tab="stopwatch">
+    <div class="tab-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z"/></svg>
+    </div>
+    <span>스톱워치</span>
+  </button>
+  <button class="tab-item" data-tab="timer">
+    <div class="tab-icon">
+      <svg viewBox="0 0 24 24"><path d="M15 1H9v2h6V1zm-4 13h2V8h-2v6zm8.03-6.61l1.42-1.42c-.43-.51-.9-.99-1.41-1.41l-1.42 1.42C16.07 4.74 14.12 4 12 4c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-2.12-.74-4.07-1.97-5.61zM12 20c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+    </div>
+    <span>타이머</span>
+  </button>
+</div>
+
+<script>
+// ==========================================
+// TAB NAVIGATION
+// ==========================================
+const tabs = document.querySelectorAll('.tab-item');
+const pageMap = {
+  world: document.getElementById('pageWorld'),
+  alarm: document.getElementById('pageAlarm'),
+  stopwatch: document.getElementById('pageStopwatch'),
+  timer: document.getElementById('pageTimer')
+};
+
+function switchTab(name) {
+  tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  Object.entries(pageMap).forEach(([k, el]) => el.classList.toggle('active', k === name));
+}
+
+tabs.forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+switchTab('stopwatch');
+
+// ==========================================
+// 세계시계
+// ==========================================
+const cities = [
+  { city: '서울', tz: 'Asia/Seoul' },
+  { city: '뉴욕', tz: 'America/New_York' },
+  { city: '런던', tz: 'Europe/London' },
+  { city: '도쿄', tz: 'Asia/Tokyo' },
+];
+
+function getTimeDiff(tz) {
+  const now = new Date();
+  const here = now.getTime() + now.getTimezoneOffset() * 60000;
+  const there = new Date(now.toLocaleString('en-US', { timeZone: tz })).getTime();
+  const local = new Date(now.toLocaleString('en-US', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })).getTime();
+  const diffH = Math.round((there - local) / 3600000);
+  const dayDiff = new Date(now.toLocaleString('en-US', { timeZone: tz })).getDate() - now.getDate();
+  const dayLabel = dayDiff === 0 ? '오늘' : dayDiff > 0 ? '내일' : '어제';
+  const sign = diffH >= 0 ? '+' : '';
+  return `${dayLabel}, ${sign}${diffH}시간`;
+}
+
+function renderWorldClocks() {
+  const list = document.getElementById('worldClockList');
+  list.innerHTML = '';
+  cities.forEach(c => {
+    const now = new Date();
+    const opts = { timeZone: c.tz, hour: 'numeric', minute: '2-digit', hour12: true };
+    const str = now.toLocaleTimeString('ko-KR', opts);
+    const m = str.match(/(오전|오후)\s*(\d+):(\d+)/);
+    const item = document.createElement('div');
+    item.className = 'world-clock-item';
+    item.innerHTML = `
+      <div>
+        <div class="wc-diff">${getTimeDiff(c.tz)}</div>
+        <div class="wc-city">${c.city}</div>
+      </div>
+      <div class="wc-time">${m ? m[2]+':'+m[3] : str}<span class="wc-ampm">${m ? m[1] : ''}</span></div>`;
+    list.appendChild(item);
+  });
+}
+renderWorldClocks();
+setInterval(renderWorldClocks, 30000);
+
+// ==========================================
+// 알람
+// ==========================================
+const alarms = [
+  { h:4, m:0, label:'알람', on:false },
+  { h:6, m:30, label:'알람', on:true },
+  { h:7, m:0, label:'출근', on:true },
+  { h:21, m:0, label:'알람', on:false },
+];
+
+function renderAlarms() {
+  const list = document.getElementById('alarmList');
+  list.innerHTML = '';
+  alarms.forEach(a => {
+    const ampm = a.h < 12 ? '오전' : '오후';
+    const h12 = a.h % 12 || 12;
+    const item = document.createElement('div');
+    item.className = `alarm-item ${a.on ? '' : 'alarm-off'}`;
+    item.innerHTML = `
+      <div>
+        <div class="alarm-time-row">
+          <span class="alarm-ampm">${ampm} </span>
+          <span class="alarm-time-num">${h12}:${String(a.m).padStart(2,'0')}</span>
+        </div>
+        <div class="alarm-label">${a.label}</div>
+      </div>
+      <div class="ios-toggle ${a.on?'on':''}"></div>`;
+    item.querySelector('.ios-toggle').addEventListener('click', () => {
+      a.on = !a.on;
+      renderAlarms();
+    });
+    list.appendChild(item);
+  });
+}
+renderAlarms();
+
+// ==========================================
+// 스톱워치
+// ==========================================
+let running = false, elapsed = 0, pausedElapsed = 0, startT = 0, rafId = null;
+let laps = [], lapBase = 0;
+
+// Cheat
+let cheatOn = false, cheatTarget = 10000, frozen = false, frozenTime = 0;
+
+const canvas = document.getElementById('swCanvas');
+const ctx = canvas.getContext('2d');
+const DPR = 2;
+
+function fmt(ms) {
+  const c = Math.floor(ms / 10) % 100;
+  const s = Math.floor(ms / 1000) % 60;
+  const m = Math.floor(ms / 60000);
+  return { m: String(m).padStart(2,'0'), s: String(s).padStart(2,'0'), c: String(c).padStart(2,'0') };
+}
+
+function fmtStr(ms) {
+  const t = fmt(ms);
+  return `${t.m}:${t.s}.${t.c}`;
+}
+
+function drawClock(ms) {
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2, R = W/2 - 30;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // 240 tick marks (4 per second)
+  for (let i = 0; i < 240; i++) {
+    const ang = (i / 240) * Math.PI * 2 - Math.PI / 2;
+    const isSecond = i % 4 === 0;
+    const isFive = i % 20 === 0;
+    const outerR = R;
+    let innerR, lw, color;
+
+    if (isFive) {
+      innerR = R - 22;
+      lw = 3;
+      color = '#FFFFFF';
+    } else if (isSecond) {
+      innerR = R - 15;
+      lw = 2;
+      color = 'rgba(255,255,255,0.7)';
+    } else {
+      innerR = R - 9;
+      lw = 1.5;
+      color = 'rgba(255,255,255,0.3)';
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(ang) * innerR, cy + Math.sin(ang) * innerR);
+    ctx.lineTo(cx + Math.cos(ang) * outerR, cy + Math.sin(ang) * outerR);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = lw;
+    ctx.stroke();
+  }
+
+  // Numbers at 5-second intervals
+  for (let i = 0; i < 12; i++) {
+    const num = (i + 1) * 5;
+    const ang = (num / 60) * Math.PI * 2 - Math.PI / 2;
+    const nR = R - 40;
+    ctx.font = '500 28px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(num === 60 ? 60 : num), cx + Math.cos(ang) * nR, cy + Math.sin(ang) * nR);
+  }
+
+  // Sub-dial for minutes (bottom center)
+  const subCy = cy + 80;
+  const subR = 48;
+
+  ctx.beginPath();
+  ctx.arc(cx, subCy, subR, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  for (let i = 0; i < 30; i++) {
+    const ang = (i / 30) * Math.PI * 2 - Math.PI / 2;
+    const isMaj = i % 5 === 0;
+    const oR = subR;
+    const iR = isMaj ? subR - 10 : subR - 5;
+
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(ang) * iR, subCy + Math.sin(ang) * iR);
+    ctx.lineTo(cx + Math.cos(ang) * oR, subCy + Math.sin(ang) * oR);
+    ctx.strokeStyle = isMaj ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = isMaj ? 1.5 : 1;
+    ctx.stroke();
+  }
+
+  // Sub-dial numbers
+  for (let i = 0; i < 6; i++) {
+    const num = (i + 1) * 5;
+    const ang = (num / 30) * Math.PI * 2 - Math.PI / 2;
+    const nR = subR - 18;
+    ctx.font = '500 13px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(num), cx + Math.cos(ang) * nR, subCy + Math.sin(ang) * nR);
+  }
+
+  // Minute hand (sub-dial)
+  const minVal = ms / 60000;
+  const minAng = (minVal % 30) / 30 * Math.PI * 2 - Math.PI / 2;
+  const minHandLen = subR - 20;
+  const minTailLen = 8;
+
+  ctx.beginPath();
+  ctx.moveTo(cx - Math.cos(minAng) * minTailLen, subCy - Math.sin(minAng) * minTailLen);
+  ctx.lineTo(cx + Math.cos(minAng) * minHandLen, subCy + Math.sin(minAng) * minHandLen);
+  ctx.strokeStyle = '#FF9F0A';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(cx, subCy, 3, 0, Math.PI * 2);
+  ctx.fillStyle = '#FF9F0A';
+  ctx.fill();
+
+  // Main seconds hand (orange)
+  const secVal = ms / 1000;
+  const secAng = (secVal % 60) / 60 * Math.PI * 2 - Math.PI / 2;
+  const handLen = R - 52;
+  const tailLen = 30;
+
+  ctx.beginPath();
+  ctx.moveTo(cx - Math.cos(secAng) * tailLen, cy - Math.sin(secAng) * tailLen);
+  ctx.lineTo(cx + Math.cos(secAng) * handLen, cy + Math.sin(secAng) * handLen);
+  ctx.strokeStyle = '#FF9F0A';
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Center dot
+  ctx.beginPath();
+  ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#FF9F0A';
+  ctx.fill();
+}
+
+let swMode = 'analog'; // 'analog' or 'digital'
+
+function tick() {
+  const displayMs = frozen ? frozenTime : (elapsed = pausedElapsed + (performance.now() - startT));
+  const t = fmt(displayMs);
+
+  document.getElementById('swTime').innerHTML =
+    `${t.m}:${t.s}<span class="sw-cs">.${t.c}</span>`;
+
+  document.getElementById('swDigitalLarge').innerHTML =
+    `${t.m}:${t.s}<span class="sw-cs-lg">.${t.c}</span>`;
+
+  if (swMode === 'analog') drawClock(displayMs);
+
+  if (running) rafId = requestAnimationFrame(tick);
+}
+
+function toggleRun() {
+  if (!running) {
+    running = true;
+    startT = performance.now();
+    frozen = false;
+    if (elapsed === 0) lapBase = 0;
+
+    document.getElementById('startBtn').textContent = '중단';
+    document.getElementById('startWrap').className = 'sw-btn-wrap btn-red';
+    document.getElementById('lapBtn').textContent = '랩';
+    document.getElementById('lapWrap').className = 'sw-btn-wrap btn-gray';
+
+    tick();
+  } else {
+    running = false;
+    pausedElapsed = frozen ? frozenTime : elapsed;
+    elapsed = pausedElapsed;
+    frozen = false;
+    cancelAnimationFrame(rafId);
+
+    document.getElementById('startBtn').textContent = '시작';
+    document.getElementById('startWrap').className = 'sw-btn-wrap btn-green';
+    document.getElementById('lapBtn').textContent = '재설정';
+    document.getElementById('lapWrap').className = 'sw-btn-wrap btn-gray';
+
+    tick();
+  }
+}
+
+function lapOrReset() {
+  if (running) {
+    const cur = frozen ? frozenTime : elapsed;
+    const lapTime = cur - lapBase;
+    laps.unshift({ time: lapTime });
+    lapBase = cur;
+    renderLaps();
+  } else if (elapsed > 0) {
+    elapsed = 0;
+    pausedElapsed = 0;
+    laps = [];
+    lapBase = 0;
+    frozen = false;
+    document.getElementById('lapBtn').textContent = '랩';
+    document.getElementById('lapWrap').className = 'sw-btn-wrap btn-gray-dim';
+    renderLaps();
+    drawClock(0);
+    document.getElementById('swTime').innerHTML = '00:00<span class="sw-cs">.00</span>';
+    document.getElementById('swDigitalLarge').innerHTML = '00:00<span class="sw-cs-lg">.00</span>';
+  }
+}
+
+function renderLaps() {
+  const el = document.getElementById('swLaps');
+  el.innerHTML = '';
+
+  if (laps.length === 0) return;
+
+  let bestI = 0, worstI = 0;
+  if (laps.length >= 2) {
+    laps.forEach((l, i) => {
+      if (l.time < laps[bestI].time) bestI = i;
+      if (l.time > laps[worstI].time) worstI = i;
+    });
+  }
+
+  laps.forEach((l, i) => {
+    const n = laps.length - i;
+    const row = document.createElement('div');
+    let cls = 'lap-row';
+    if (laps.length >= 2) {
+      if (i === bestI) cls += ' fastest';
+      if (i === worstI) cls += ' slowest';
+    }
+    row.className = cls;
+    row.innerHTML = `<span class="lap-name">랩 ${n}</span><span class="lap-val">${fmtStr(l.time)}</span>`;
+    el.appendChild(row);
+  });
+}
+
+document.getElementById('startBtn').addEventListener('click', toggleRun);
+document.getElementById('lapBtn').addEventListener('click', lapOrReset);
+
+// ==========================================
+// CHEAT SYSTEM
+// ==========================================
+const cheatZone = document.getElementById('cheatZone');
+let longPressTimer = null;
+
+function onDown(e) {
+  e.preventDefault();
+  longPressTimer = setTimeout(() => {
+    openSettings();
+    longPressTimer = null;
+  }, 800);
+}
+
+function onUp() {
+  if (longPressTimer !== null) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+    // Short tap
+    if (!cheatOn) return;
+    if (running && !frozen) {
+      frozen = true;
+      frozenTime = cheatTarget;
+    } else if (running && frozen) {
+      frozen = false;
+    }
+  }
+}
+
+cheatZone.addEventListener('touchstart', onDown, { passive: false });
+cheatZone.addEventListener('touchend', onUp);
+cheatZone.addEventListener('touchcancel', () => { if (longPressTimer) clearTimeout(longPressTimer); });
+cheatZone.addEventListener('mousedown', onDown);
+cheatZone.addEventListener('mouseup', onUp);
+
+function openSettings() {
+  const cs = Math.floor(cheatTarget / 10) % 100;
+  const sec = Math.floor(cheatTarget / 1000) % 60;
+  const min = Math.floor(cheatTarget / 60000);
+  document.getElementById('tgtMin').value = min;
+  document.getElementById('tgtSec').value = sec;
+  document.getElementById('tgtCs').value = cs;
+  document.getElementById('settingsModal').classList.add('show');
+}
+
+document.getElementById('saveBtn').addEventListener('click', () => {
+  const min = parseInt(document.getElementById('tgtMin').value) || 0;
+  const sec = parseInt(document.getElementById('tgtSec').value) || 0;
+  const cs = parseInt(document.getElementById('tgtCs').value) || 0;
+  cheatTarget = (min * 60 + sec) * 1000 + cs * 10;
+  cheatOn = true;
+  document.getElementById('settingsModal').classList.remove('show');
+  document.getElementById('cheatDot').classList.add('on');
+});
+
+document.getElementById('settingsModal').addEventListener('click', (e) => {
+  if (e.target.id === 'settingsModal') {
+    document.getElementById('settingsModal').classList.remove('show');
+  }
+});
+
+// ==========================================
+// 스톱워치 아날로그/디지털 드래그 전환
+// ==========================================
+(function() {
+  const area = document.getElementById('swDisplayArea');
+  const analogEl = document.getElementById('swAnalog');
+  const digitalEl = document.getElementById('swDigitalLarge');
+  const dotA = document.getElementById('dotAnalog');
+  const dotD = document.getElementById('dotDigital');
+
+  let dragStartX = 0, dragging = false;
+
+  function setMode(mode) {
+    swMode = mode;
+    if (mode === 'digital') {
+      area.classList.add('mode-digital');
+      dotA.classList.remove('active');
+      dotD.classList.add('active');
+      const displayMs = frozen ? frozenTime : elapsed;
+      const t = fmt(displayMs);
+      digitalEl.innerHTML = `${t.m}:${t.s}<span class="sw-cs-lg">.${t.c}</span>`;
+    } else {
+      area.classList.remove('mode-digital');
+      dotA.classList.add('active');
+      dotD.classList.remove('active');
+      const displayMs = frozen ? frozenTime : elapsed;
+      drawClock(displayMs);
+    }
+  }
+
+  area.addEventListener('touchstart', (e) => {
+    dragStartX = e.touches[0].clientX;
+    dragging = true;
+  }, { passive: true });
+
+  area.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const dx = e.touches[0].clientX - dragStartX;
+    if (Math.abs(dx) > 40) {
+      dragging = false;
+      if (dx < 0 && swMode === 'digital') {
+        setMode('analog');
+      } else if (dx > 0 && swMode === 'analog') {
+        setMode('digital');
+      }
+    }
+  }, { passive: true });
+
+  area.addEventListener('touchend', () => { dragging = false; });
+  area.addEventListener('touchcancel', () => { dragging = false; });
+
+  // Mouse drag support
+  area.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.cheat-zone')) return;
+    dragStartX = e.clientX;
+    dragging = true;
+  });
+
+  area.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - dragStartX;
+    if (Math.abs(dx) > 40) {
+      dragging = false;
+      if (dx < 0 && swMode === 'digital') {
+        setMode('analog');
+      } else if (dx > 0 && swMode === 'analog') {
+        setMode('digital');
+      }
+    }
+  });
+
+  area.addEventListener('mouseup', () => { dragging = false; });
+  area.addEventListener('mouseleave', () => { dragging = false; });
+})();
+
+// ==========================================
+// 타이머
+// ==========================================
+function initPicker(el, max) {
+  const pad = 2;
+  for (let i = 0; i < pad; i++) {
+    const d = document.createElement('div');
+    d.className = 'picker-val';
+    el.appendChild(d);
+  }
+  for (let i = 0; i <= max; i++) {
+    const d = document.createElement('div');
+    d.className = 'picker-val';
+    d.textContent = i;
+    d.dataset.v = i;
+    el.appendChild(d);
+  }
+  for (let i = 0; i < pad; i++) {
+    const d = document.createElement('div');
+    d.className = 'picker-val';
+    el.appendChild(d);
+  }
+
+  function updateSel() {
+    const idx = Math.round(el.scrollTop / 36);
+    el.querySelectorAll('.picker-val').forEach((v, j) => v.classList.toggle('sel', j === idx + pad));
+  }
+
+  el.addEventListener('scroll', updateSel);
+  el.scrollTop = 0;
+  requestAnimationFrame(() => updateSel());
+}
+
+initPicker(document.getElementById('pickH'), 23);
+initPicker(document.getElementById('pickM'), 59);
+initPicker(document.getElementById('pickS'), 59);
+
+let tmrRunning = false, tmrTotal = 0, tmrRemain = 0, tmrStart = 0, tmrRaf = null;
+
+const tmrCanvas = document.getElementById('timerCanvas');
+const tmrCtx = tmrCanvas.getContext('2d');
+
+function getPickVal(el) { return Math.round(el.scrollTop / 36); }
+
+function drawRing(progress) {
+  const W = tmrCanvas.width, H = tmrCanvas.height;
+  const cx = W/2, cy = H/2, R = W/2 - 24;
+
+  tmrCtx.clearRect(0, 0, W, H);
+
+  tmrCtx.beginPath();
+  tmrCtx.arc(cx, cy, R, 0, Math.PI * 2);
+  tmrCtx.strokeStyle = 'rgba(255,255,255,0.08)';
+  tmrCtx.lineWidth = 8;
+  tmrCtx.stroke();
+
+  if (progress > 0) {
+    const start = -Math.PI / 2;
+    tmrCtx.beginPath();
+    tmrCtx.arc(cx, cy, R, start, start + progress * Math.PI * 2);
+    tmrCtx.strokeStyle = '#FF9F0A';
+    tmrCtx.lineWidth = 8;
+    tmrCtx.lineCap = 'round';
+    tmrCtx.stroke();
+  }
+}
+
+function fmtTimer(ms) {
+  const t = Math.ceil(ms / 1000);
+  const h = Math.floor(t / 3600);
+  const m = Math.floor((t % 3600) / 60);
+  const s = t % 60;
+  return h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`;
+}
+
+function tmrTick() {
+  if (!tmrRunning) return;
+  tmrRemain = tmrTotal - (performance.now() - tmrStart);
+  if (tmrRemain <= 0) {
+    tmrRemain = 0;
+    tmrRunning = false;
+    document.getElementById('timerTime').textContent = '0:00';
+    drawRing(0);
+    document.getElementById('timerStartBtn').textContent = '시작';
+    document.getElementById('timerStartWrap').className = 'sw-btn-wrap btn-green';
+    return;
+  }
+  document.getElementById('timerTime').textContent = fmtTimer(tmrRemain);
+  drawRing(tmrRemain / tmrTotal);
+  tmrRaf = requestAnimationFrame(tmrTick);
+}
+
+document.getElementById('timerStartBtn').addEventListener('click', () => {
+  if (!tmrRunning) {
+    if (tmrRemain > 0) {
+      tmrTotal = tmrRemain;
+    } else {
+      const h = getPickVal(document.getElementById('pickH'));
+      const m = getPickVal(document.getElementById('pickM'));
+      const s = getPickVal(document.getElementById('pickS'));
+      tmrTotal = (h*3600 + m*60 + s) * 1000;
+      if (!tmrTotal) return;
+      tmrRemain = tmrTotal;
+      document.getElementById('timerPickerArea').classList.add('hidden');
+      document.getElementById('timerRingArea').classList.add('visible');
+    }
+    tmrStart = performance.now();
+    tmrRunning = true;
+    document.getElementById('timerStartBtn').textContent = '일시 정지';
+    document.getElementById('timerStartWrap').className = 'sw-btn-wrap btn-red';
+    tmrTick();
+  } else {
+    tmrRunning = false;
+    tmrRemain = tmrTotal - (performance.now() - tmrStart);
+    cancelAnimationFrame(tmrRaf);
+    document.getElementById('timerStartBtn').textContent = '재개';
+    document.getElementById('timerStartWrap').className = 'sw-btn-wrap btn-green';
+  }
+});
+
+document.getElementById('timerCancelBtn').addEventListener('click', () => {
+  tmrRunning = false;
+  tmrRemain = 0;
+  cancelAnimationFrame(tmrRaf);
+  document.getElementById('timerPickerArea').classList.remove('hidden');
+  document.getElementById('timerRingArea').classList.remove('visible');
+  document.getElementById('timerStartBtn').textContent = '시작';
+  document.getElementById('timerStartWrap').className = 'sw-btn-wrap btn-green';
+});
+
+// Init
+drawClock(0);
+drawRing(1);
+</script>
+</body>
+</html>
